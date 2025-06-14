@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
+const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -18,19 +19,21 @@ app.post('/echo', async (req, res) => {
   res.setHeader('Content-Type', 'text/plain');
   res.setHeader('Transfer-Encoding', 'chunked');
 
-  // Split message into words and send each word with a delay
+  // Add initial delay of 3 seconds
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  // Split message into words and send each word with delay
   const words = message.split(' ');
   
   for (const word of words) {
-    await new Promise(resolve => setTimeout(resolve, 100)); // 0.1 second delay
     res.write(word + ' ');
+    // Increase delay between words to 0.3 seconds
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
 
   res.end();
 });
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`API server is running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`API server listening at http://localhost:${port}`);
 }); 

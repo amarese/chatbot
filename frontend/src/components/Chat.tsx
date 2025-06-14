@@ -14,6 +14,7 @@ export const Chat: React.FC = () => {
   const [inputMessage, setInputMessage] = useState('');
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const currentBotMessageRef = useRef<MessageType | null>(null);
 
   useEffect(() => {
     if (!state.userId) {
@@ -34,10 +35,49 @@ export const Chat: React.FC = () => {
 
     ws.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, message],
-      }));
+
+      if (message.type === 'history') {
+        setState(prev => ({
+          ...prev,
+          messages: message.messages,
+        }));
+        return;
+      }
+
+      if (message.sender === 'bot') {
+        if (!currentBotMessageRef.current) {
+          // 새로운 봇 메시지 시작
+          currentBotMessageRef.current = {
+            id: uuidv4(),
+            content: message.content,
+            sender: 'bot',
+            timestamp: Date.now(),
+          };
+          setState(prev => ({
+            ...prev,
+            messages: [...prev.messages, currentBotMessageRef.current!],
+          }));
+        } else {
+          // 기존 봇 메시지에 내용 추가
+          currentBotMessageRef.current.content += message.content;
+          setState(prev => ({
+            ...prev,
+            messages: prev.messages.map(msg =>
+              msg.id === currentBotMessageRef.current!.id
+                ? currentBotMessageRef.current!
+                : msg
+            ),
+          }));
+        }
+      } else {
+        // 사용자 메시지 처리
+        setState(prev => ({
+          ...prev,
+          messages: [...prev.messages, message],
+        }));
+        // 새로운 사용자 메시지가 오면 봇 메시지 참조 초기화
+        currentBotMessageRef.current = null;
+      }
     };
 
     ws.onclose = () => {
