@@ -15,6 +15,7 @@ export const Chat: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentBotMessageRef = useRef<MessageType | null>(null);
+  const lastUserMessageRef = useRef<string>('');
 
   useEffect(() => {
     if (!state.userId) {
@@ -69,12 +70,13 @@ export const Chat: React.FC = () => {
             ),
           }));
         }
-      } else {
-        // 사용자 메시지 처리
+      } else if (message.content !== lastUserMessageRef.current) {
+        // 사용자 메시지 처리 (중복 체크)
         setState(prev => ({
           ...prev,
           messages: [...prev.messages, message],
         }));
+        lastUserMessageRef.current = message.content;
         // 새로운 사용자 메시지가 오면 봇 메시지 참조 초기화
         currentBotMessageRef.current = null;
       }
@@ -103,6 +105,9 @@ export const Chat: React.FC = () => {
       sender: 'user',
       timestamp: Date.now(),
     };
+
+    // 메시지 전송 전에 lastUserMessageRef 업데이트
+    lastUserMessageRef.current = inputMessage;
 
     wsRef.current.send(JSON.stringify({
       type: 'message',
